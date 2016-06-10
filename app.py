@@ -18,9 +18,12 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, async_mode=async_mode)
 thread = None
+
 values = {
-    'slider': 25
+    'slider1': 25,
+    'slider2': 0,
 }
+
 
 
 
@@ -49,11 +52,12 @@ def index():
 
 
 
-socketio.on('value changed', namespace='/test1')
+@socketio.on('value changed', namespace='/test1')
 def value_changed(message):
-    session['receive_count'] = session.get('receive_count', 0) + 1
+    values[message['who']] = message['data']
     print(message['data'])
     emit('update value', message, broadcast=True)
+
 
 
 
