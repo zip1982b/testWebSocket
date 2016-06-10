@@ -1,0 +1,156 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Flask-SocketIO Test</title>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        $(document).ready(function(){
+            namespace1 = '/test1'; // change to an empty string to use the global namespace
+            namespace2 = '/test2'; // change to an empty string to use the global namespace
+            // the socket.io documentation recommends sending an explicit package upon connection
+            // this is specially important when using the global namespace
+            // убрал io.connect оставил io
+            // возможно здесь проиходит подключение к серверу !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            var socket1 = io.connect('http://' + document.domain + ':' + location.port + namespace1);
+            var socket2 = io.connect('http://' + document.domain + ':' + location.port + namespace2);
+
+
+
+            // event handler for server sent data
+            // the data is displayed in the "Received" section of the page
+            // здесь мы принимаем все ответы(данные) от сервера*********************************************
+            socket1.on('Server response', function(msg) {
+               // $('#log').append('<br>Received #' + msg.count + ': ' + msg.data);
+                $('#log_test1').text('Received #' + msg.count + ': ' + msg.data);
+            });
+
+
+             socket2.on('Server response', function(msg) {
+                $('#log_test2').text('Received #' + msg.count + ': ' + msg.data);
+            });
+
+            //**********************************************************************************************
+
+
+
+
+
+
+
+
+
+
+
+            // event handler for new connections - обработчик события
+            // не отвечает за само соединение, только когда произошло событие connect, тогда отсылаем сообщение
+
+            socket1.on('connect', function() {
+                //socket1.emit("server receives data", user);
+                //var user = { "name": "Вася", "age": 35, "isAdmin": false, "friends": [0,1,2,3] };
+                socket1.emit("server receives data", {data: 'Client is connected! test1'}); //{data: 'Client is connected! test1'}
+            });
+
+            // event handler for new connections - обработчик события
+            // не отвечает за само соединение, только когда произошло событие connect, тогда отсылаем сообщение
+            socket2.on('connect', function() {
+                socket2.emit('server receives data', {data: 'Client is connected! test2'});
+            });
+
+            // handlers for the different forms in the page
+            // these send data to the server in a variety of ways
+            $('form#emit').submit(function(event) {
+                socket1.emit('server receives data', {data: $('#emit_data').val()});
+                console.log({data: $('#emit_data').val()});
+                return false;
+            });
+            $('form#broadcast').submit(function(event) {
+                socket1.emit('my broadcast event', {data: $('#broadcast_data').val()});
+                console.log({data: $('#broadcast_data').val()});
+                socket2.emit('my broadcast event', {data: $('#broadcast_data').val()});
+                console.log({data: $('#broadcast_data').val()});
+                return false;
+            });
+            $('form#join').submit(function(event) {
+                socket1.emit('join', {room: $('#join_room').val()});
+                return false;
+            });
+            $('form#leave').submit(function(event) {
+                socket1.emit('leave', {room: $('#leave_room').val()});
+                return false;
+            });
+            $('form#send_room').submit(function(event) {
+                socket1.emit('my room event', {room: $('#room_name').val(), data: $('#room_data').val()});
+                return false;
+            });
+            $('form#close').submit(function(event) {
+                socket1.emit('close room', {room: $('#close_room').val()});
+                return false;
+            });
+            $('form#disconnect').submit(function(event) {
+                socket1.emit('disconnect request');
+                return false;
+            });
+
+            $('input.sync').on('input', function(event) {
+                socket1.emit('value changed', {who: $(this).attr('id'), data: $(this).val()});
+                console.log({who: $(this).attr('id'), data: $(this).val()})
+                return false;
+            });
+
+            socket1.on('update value', function(msg) {
+                $('input#'+msg.who).val(msg.data)
+            });
+
+
+        });
+    </script>
+</head>
+<body>
+    <h1>Flask-SocketIO Test</h1>
+    <h2>Send:</h2>
+    <form id="emit" method="POST" action='#'>
+        <input type="text" name="emit_data" id="emit_data" placeholder="Message">
+        <input type="submit" value="Echo">
+    </form>
+    <form id="broadcast" method="POST" action='#'>
+        <input type="text" name="broadcast_data" id="broadcast_data" placeholder="Message">
+        <input type="submit" value="Broadcast">
+    </form>
+    <form id="join" method="POST" action='#'>
+        <input type="text" name="join_room" id="join_room" placeholder="Room Name">
+        <input type="submit" value="Join Room">
+    </form>
+    <form id="leave" method="POST" action='#'>
+        <input type="text" name="leave_room" id="leave_room" placeholder="Room Name">
+        <input type="submit" value="Leave Room">
+    </form>
+    <form id="send_room" method="POST" action='#'>
+        <input type="text" name="room_name" id="room_name" placeholder="Room Name">
+        <input type="text" name="room_data" id="room_data" placeholder="Message">
+        <input type="submit" value="Send to Room">
+    </form>
+    <form id="close" method="POST" action="#">
+        <input type="text" name="close_room" id="close_room" placeholder="Room Name">
+        <input type="submit" value="Close Room">
+    </form>
+    <form id="disconnect" method="POST" action="#">
+        <input type="submit" value="Disconnect">
+    </form>
+
+    <h2>Receive namespace test1:</h2>
+    <div id="log_test1"></div>
+    <h3>Receive namespace test2:</h3>
+    <div id="log_test2"></div>
+
+
+    <h4>Synchronized Sliders!</h4>
+
+    <input id="slider1" class="sync" type="range" min="0" max="50" value="{{slider1}}" /> <br>
+    <input id="slider2" class="sync" type="range" min="0" max="50" value="{{slider2}}" />
+
+    <input id="txt1" class="sync" type="text" />
+
+
+</body>
+</html>
